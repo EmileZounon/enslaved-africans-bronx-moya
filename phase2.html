@@ -15,13 +15,14 @@
       pointer-events: none; z-index: 1;
     }
 
-    /* ── Left panel ─────────────────────────────────────── */
+    /* ── Left panel (desktop: sidebar, mobile: bottom drawer) ── */
     .panel {
       position: fixed; top: 0; left: 0; z-index: 10;
       width: 340px; height: 100vh; overflow-y: auto;
       background: rgba(18, 14, 10, 0.94); backdrop-filter: blur(12px);
       color: #e8dcc8; padding: 20px; font-size: 13px;
       border-right: 1px solid rgba(255,193,59,0.15);
+      transition: transform 0.3s ease;
     }
     .panel h1 {
       font-size: 18px; color: #ffc13b; margin-bottom: 2px;
@@ -30,6 +31,44 @@
     .panel .subtitle {
       font-size: 11px; color: #a89070; margin-bottom: 16px;
       font-style: italic;
+    }
+
+    /* ── Mobile toggle button ───────────────────────────── */
+    .panel-toggle {
+      display: none; /* hidden on desktop */
+      position: fixed; z-index: 11;
+      bottom: 12px; left: 50%; transform: translateX(-50%);
+      padding: 10px 20px; border: 1px solid rgba(255,193,59,0.4);
+      border-radius: 24px; background: rgba(18, 14, 10, 0.92);
+      backdrop-filter: blur(10px); color: #ffc13b;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      font-family: 'Georgia', serif;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .panel-toggle.panel-open { bottom: auto; top: 8px; }
+
+    /* ── Mobile styles ──────────────────────────────────── */
+    @media (max-width: 768px) {
+      .panel {
+        top: auto; bottom: 0; left: 0; right: 0;
+        width: 100%; height: 70vh;
+        border-right: none; border-top: 1px solid rgba(255,193,59,0.25);
+        border-radius: 16px 16px 0 0;
+        transform: translateY(100%);
+        padding: 16px 16px 80px;
+      }
+      .panel.open { transform: translateY(0); }
+      .panel h1 { font-size: 16px; }
+      .panel-toggle { display: block; }
+      .panel-toggle.panel-open { bottom: 71vh; top: auto; transform: translateX(-50%); }
+
+      /* Drag handle at top of drawer */
+      .panel::before {
+        content: '';
+        display: block; width: 40px; height: 4px;
+        background: rgba(255,193,59,0.4); border-radius: 2px;
+        margin: 0 auto 12px;
+      }
     }
 
     /* Summary stats */
@@ -107,9 +146,17 @@
     .info-card .close-btn {
       position: absolute; top: 10px; right: 12px;
       background: none; border: none; color: #a89070;
-      font-size: 18px; cursor: pointer;
+      font-size: 22px; cursor: pointer; padding: 4px 8px;
     }
     .info-card .close-btn:hover { color: #ffc13b; }
+
+    @media (max-width: 768px) {
+      .info-card {
+        width: calc(100% - 24px); left: 12px !important;
+        top: auto !important; bottom: 12px;
+        max-height: 60vh; border-radius: 12px;
+      }
+    }
     .info-card h2 { font-size: 16px; color: #ffc13b; margin-bottom: 2px; }
     .info-card .year-badge {
       display: inline-block; background: rgba(255,193,59,0.15);
@@ -135,17 +182,6 @@
       font-size: 11px; color: #a89070; font-style: italic;
     }
 
-    /* ── Load georef banner ──────────────────────────────── */
-    .georef-load {
-      margin-bottom: 14px; text-align: center;
-    }
-    .georef-load .load-btn {
-      padding: 8px 16px; border: 1px dashed rgba(255,193,59,0.4);
-      border-radius: 6px; background: transparent; color: #c8b080;
-      font-size: 12px; cursor: pointer; transition: all 0.15s;
-      font-family: 'Georgia', serif;
-    }
-    .georef-load .load-btn:hover { background: rgba(255,193,59,0.1); color: #ffc13b; }
   </style>
 </head>
 <body>
@@ -172,11 +208,6 @@
         </label>
       </div>
     </div>
-    <div class="georef-load">
-      <button class="load-btn" id="load-georef-btn">Load saved georef JSON</button>
-      <input type="file" id="georef-input" accept=".json" style="display:none">
-    </div>
-
     <div class="section-title">Filter by Census Year</div>
     <div class="year-filters" id="year-filters"></div>
 
@@ -186,6 +217,9 @@
     <div class="section-title">Records</div>
     <div class="record-list" id="record-list"></div>
   </div>
+
+  <!-- Mobile toggle button -->
+  <button class="panel-toggle" id="panel-toggle">View Census Records</button>
 
   <!-- Info card (shown on marker click) -->
   <div class="info-card" id="info-card">
@@ -439,36 +473,6 @@
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  LOAD GEOREF JSON
-    // ══════════════════════════════════════════════════════════════════════
-    function loadGeorefJSON(file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (data.controlPoints) {
-            data.controlPoints.forEach(loaded => {
-              const idx = currentPoints.findIndex(cp => cp.id === loaded.id);
-              if (idx >= 0) {
-                currentPoints[idx].lat = loaded.lat;
-                currentPoints[idx].lng = loaded.lng;
-                if (loaded.imgX != null) currentPoints[idx].imgX = loaded.imgX;
-                if (loaded.imgY != null) currentPoints[idx].imgY = loaded.imgY;
-              }
-            });
-            recomputeTriangulation();
-          }
-          if (data.opacity != null) {
-            const pct = Math.round(data.opacity * 100);
-            document.getElementById('opacity-slider').value = pct;
-            document.getElementById('opacity-val').textContent = pct + '%';
-          }
-        } catch (err) { alert('Invalid JSON: ' + err.message); }
-      };
-      reader.readAsText(file);
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
     //  PARSE NAMES
     // ══════════════════════════════════════════════════════════════════════
     function parseNames(nameStr) {
@@ -622,9 +626,21 @@
 
       content.innerHTML = html;
 
-      // Position card to the right of the panel
-      card.style.top = '60px';
-      card.style.left = '352px';
+      // Position card: on mobile it uses CSS bottom positioning,
+      // on desktop it sits to the right of the panel
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        card.style.top = '';
+        card.style.left = '12px';
+        // Close the panel drawer so the card is visible
+        document.getElementById('panel').classList.remove('open');
+        const toggleBtn = document.getElementById('panel-toggle');
+        toggleBtn.classList.remove('panel-open');
+        toggleBtn.textContent = 'View Census Records';
+      } else {
+        card.style.top = '60px';
+        card.style.left = '352px';
+      }
       card.classList.add('visible');
     }
 
@@ -766,10 +782,14 @@
         renderOverlay();
       });
       document.getElementById('close-card').addEventListener('click', hideInfoCard);
-      document.getElementById('load-georef-btn').addEventListener('click', () =>
-        document.getElementById('georef-input').click());
-      document.getElementById('georef-input').addEventListener('change', e => {
-        if (e.target.files[0]) loadGeorefJSON(e.target.files[0]);
+
+      // Mobile panel toggle
+      const panelEl = document.getElementById('panel');
+      const toggleBtn = document.getElementById('panel-toggle');
+      toggleBtn.addEventListener('click', () => {
+        const isOpen = panelEl.classList.toggle('open');
+        toggleBtn.classList.toggle('panel-open', isOpen);
+        toggleBtn.textContent = isOpen ? 'Close' : 'View Census Records';
       });
     }
   </script>
