@@ -6,7 +6,7 @@ An interactive map project for Moya combining a georeferenced 1750 colonial Bron
 map overlay with census data showing enslaved African people in the region (1698–1771).
 Includes two georeferencing tools and a census data viewer.
 
-**Live:** https://emilezounon.com/enslaved-africans-bronx-moya/
+**Live:** https://emilezounon.com/enslaved-africans-bronx-moya/phase2.html
 
 ---
 
