@@ -124,11 +124,21 @@ across 10 census years and 7 colonial towns. 202 people named individually; the
 - **1750 map overlay** with mesh warp (same rendering as `georef-precise.html`)
 - **Load saved georef JSON** to restore Moya's pin alignment
 - **Opacity slider** and show/hide toggle for the overlay
+- **Red dashed route** connecting all 7 colonial towns (toggleable on/off)
 - **Census markers**: circle markers with enslaved count, color-coded by era
   - Gold dot = names are recorded in this census entry
-- **Click a marker** → info card shows year, town, count, and individual names
+- **Popup tooltips**: click any marker on the map to open a tooltip bubble
+  - Multiple tooltips can be open simultaneously for comparison
+  - Shows town name, year, count, and up to 8 name previews
+  - "+ N more names..." link opens the full detail card
+- **Liquid glass info card**: click a record in the left panel or "more names"
+  link to open a glassmorphism detail card (backdrop blur, semi-transparent)
+  - Desktop: × close button, card positioned bottom-right
+  - Mobile: "Back" button that returns to the records drawer
+- **Active marker glow**: pulsing yellow highlight shows which marker is selected
 - **Year filter buttons** → show only markers from a specific census year
-- **Left panel**: summary stats, town legend with click-to-zoom, scrollable record list
+- **Left panel**: summary stats, overlay controls, route toggle, town legend
+  with click-to-zoom, scrollable record list
 - **Contextual notes** on info cards (e.g. earliest recorded names, distinguishing
   descriptors like "Samson Blind" or "Long Peter")
 
@@ -137,6 +147,7 @@ across 10 census years and 7 colonial towns. 202 people named individually; the
 1. Open `phase2.html` in a browser (or visit the live URL)
 2. The 1750 overlay appears at 50% opacity with census markers on top
 3. Click year buttons to filter by census year
-4. Click any marker or record in the left panel to see details
-5. To use Moya's custom alignment, click "Load saved georef JSON"
-6. Adjust overlay opacity or hide it entirely with the controls
+4. Click markers on the map to open popup tooltips (multiple at once)
+5. Click records in the left panel to open the full detail card
+6. Toggle the red route line or overlay on/off in the left panel
+7. Adjust overlay opacity with the slider

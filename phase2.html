@@ -267,14 +267,75 @@
       font-family: var(--font-body); font-weight: 300;
     }
 
+    /* ── Active marker highlight ─────────────────────────── */
+    .marker-active {
+      box-shadow:
+        0 0 0 4px rgba(255,230,0,0.5),
+        0 0 20px rgba(255,230,0,0.6),
+        0 0 40px rgba(255,230,0,0.3) !important;
+      transform: scale(1.2) !important;
+      z-index: 10 !important;
+      animation: markerPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes markerPulse {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(255,230,0,0.5), 0 0 20px rgba(255,230,0,0.6), 0 0 40px rgba(255,230,0,0.3); }
+      50% { box-shadow: 0 0 0 8px rgba(255,230,0,0.3), 0 0 30px rgba(255,230,0,0.8), 0 0 60px rgba(255,230,0,0.4); }
+    }
+
+    /* ── Map tooltip bubbles (InfoWindow) ────────────────── */
+    .tooltip-bubble {
+      font-family: var(--font-display);
+      color: var(--gray-900); max-width: 280px;
+    }
+    .tooltip-bubble h3 {
+      font-size: 16px; font-weight: 700; margin: 0 0 4px; color: var(--gray-900);
+    }
+    .tooltip-bubble .tt-year {
+      display: inline-block; background: var(--blue); color: #fff;
+      font-size: 11px; font-weight: 700; padding: 2px 10px;
+      border-radius: 12px; letter-spacing: 0.4px; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .tooltip-bubble .tt-count {
+      font-size: 14px; margin-bottom: 8px; color: var(--gray-800);
+    }
+    .tooltip-bubble .tt-count strong {
+      font-size: 20px; color: var(--blue-dark); font-weight: 700;
+    }
+    .tooltip-bubble .tt-names {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;
+    }
+    .tooltip-bubble .tt-name {
+      background: rgba(0,97,160,0.1); border: 1px solid rgba(0,97,160,0.2);
+      border-radius: 12px; padding: 2px 8px; font-size: 12px;
+      color: var(--gray-800); font-weight: 400;
+    }
+    .tooltip-bubble .tt-more {
+      font-size: 12px; color: var(--blue); cursor: pointer;
+      font-weight: 600; text-decoration: underline;
+      margin-top: 4px; display: inline-block;
+    }
+    .tooltip-bubble .tt-more:hover { color: var(--blue-dark); }
+    /* Override Google's InfoWindow styles */
+    .gm-style-iw-ch { padding-top: 0 !important; }
+    .gm-style-iw { border-radius: 16px !important; }
+
     /* ── Info card (appears on marker click) ─────────────── */
     .info-card {
       position: fixed; z-index: 20;
-      width: 400px; max-height: 80vh; overflow-y: auto;
-      background: var(--surface-card); backdrop-filter: blur(16px);
-      border: 1px solid var(--border-accent); border-radius: 14px;
+      width: 380px; max-height: 70vh; overflow-y: auto;
+      right: 16px; bottom: 16px;
+      background: rgba(20, 24, 32, 0.55);
+      -webkit-backdrop-filter: blur(40px) saturate(1.8);
+      backdrop-filter: blur(40px) saturate(1.8);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 20px;
       padding: 28px; color: var(--gray-100); display: none;
-      box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,97,160,0.08);
+      box-shadow:
+        0 24px 60px rgba(0,0,0,0.35),
+        0 0 0 0.5px rgba(255,255,255,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -1px 0 rgba(0,0,0,0.1);
     }
     .info-card.visible {
       display: block;
@@ -286,24 +347,40 @@
     }
     .info-card .close-btn {
       position: absolute; top: 14px; right: 16px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px; width: 34px; height: 34px;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--gray-400); font-size: 20px; cursor: pointer;
-      transition: all 0.15s ease;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.7); cursor: pointer;
+      font-family: var(--font-display); font-weight: 500;
+      transition: all 0.2s ease;
       line-height: 1;
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
     }
     .info-card .close-btn:hover {
-      color: var(--white); background: rgba(0,97,160,0.2);
-      border-color: var(--border-accent);
+      color: var(--white); background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.25);
+    }
+    .info-card .close-btn-desktop {
+      border-radius: 50%; width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; padding: 0;
+    }
+    .info-card .close-btn-mobile {
+      display: none;
+      border-radius: 20px; padding: 6px 16px;
+      font-size: 14px;
     }
 
     @media (max-width: 768px) {
       .info-card {
         width: calc(100% - 24px); left: 12px !important;
         top: auto !important; bottom: 12px;
-        max-height: 60vh; border-radius: 14px;
+        max-height: 60vh; border-radius: 20px;
+        background: rgba(20, 24, 32, 0.35);
+        -webkit-backdrop-filter: blur(50px) saturate(2);
+        backdrop-filter: blur(50px) saturate(2);
       }
+      .info-card .close-btn-desktop { display: none; }
+      .info-card .close-btn-mobile { display: flex; align-items: center; }
     }
 
     .info-card h2 {
@@ -312,11 +389,13 @@
       margin-bottom: 8px; line-height: 1.2;
     }
     .info-card .year-badge {
-      display: inline-block; background: var(--blue);
-      border: none; border-radius: 4px;
-      padding: 4px 12px; font-size: 13px; color: var(--white);
+      display: inline-block; background: rgba(0,97,160,0.45);
+      border: 1px solid rgba(0,97,160,0.3); border-radius: 20px;
+      padding: 4px 14px; font-size: 13px; color: var(--white);
       margin-bottom: 16px; font-family: var(--font-display);
       font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
     }
     .info-card .count-line {
       font-family: var(--font-body);
@@ -337,24 +416,25 @@
       display: flex; flex-wrap: wrap; gap: 7px;
     }
     .info-card .name-tag {
-      background: rgba(0,97,160,0.1);
-      border: 1px solid rgba(0,97,160,0.2);
-      border-radius: 4px; padding: 6px 12px;
-      font-size: 15px; color: var(--gray-100);
-      font-family: var(--font-body); font-weight: 300;
-      transition: all 0.15s ease;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px; padding: 5px 13px;
+      font-size: 15px; color: rgba(255,255,255,0.85);
+      font-family: var(--font-body); font-weight: 400;
+      transition: all 0.2s ease;
       line-height: 1.2;
     }
     .info-card .name-tag:hover {
-      background: rgba(0,97,160,0.2);
-      border-color: var(--blue);
+      background: rgba(255,255,255,0.14);
+      border-color: rgba(255,255,255,0.25);
       color: var(--white);
     }
     .info-card .note {
-      margin-top: 18px; padding-top: 16px;
-      border-top: 1px solid var(--border-subtle);
-      font-size: 14px; color: var(--gray-400); font-style: italic;
-      line-height: 1.6; font-weight: 300;
+      margin-top: 18px; padding: 14px 16px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      font-size: 14px; color: rgba(255,255,255,0.8); font-style: italic;
+      line-height: 1.6; font-weight: 400;
     }
 
     /* ── Fade-in animation for page load ─────────────────── */
@@ -382,7 +462,7 @@
   <div class="panel" id="panel">
     <button class="panel-close" id="panel-close" title="Close panel">&times;</button>
     <h1>Enslaved Africans in the Colonial Bronx</h1>
-    <div class="subtitle">Census records, 1698 &ndash; 1771 &middot; Lehman College data</div>
+    <div class="subtitle">Census records, 1698 &ndash; 1771 &middot; Bronx Hidden Histories</div>
     <div class="title-rule"></div>
 
     <div class="stats" id="stats"></div>
@@ -397,6 +477,17 @@
       <div class="row">
         <label style="font-size:11px">
           <input type="checkbox" id="overlay-toggle" checked> Show overlay
+        </label>
+      </div>
+    </div>
+    <div class="section-title">Colonial Town Route</div>
+    <div class="overlay-controls">
+      <p style="font-size:12px; color:var(--gray-400); line-height:1.5; margin-bottom:8px;">
+        The red dotted route traces the network of colonial towns where enslaved Africans were recorded in Westchester County census records.
+      </p>
+      <div class="row">
+        <label style="font-size:11px">
+          <input type="checkbox" id="route-toggle" checked> Show town route
         </label>
       </div>
     </div>
@@ -418,7 +509,8 @@
 
   <!-- Info card (shown on marker click) -->
   <div class="info-card" id="info-card">
-    <button class="close-btn" id="close-card">&times;</button>
+    <button class="close-btn close-btn-desktop" id="close-card-desktop" title="Close">&times;</button>
+    <button class="close-btn close-btn-mobile" id="close-card-mobile" title="Back to records">Back</button>
     <div id="card-content"></div>
   </div>
 
@@ -470,27 +562,27 @@
     //  COLONIAL TOWN → MODERN COORDINATES
     // ══════════════════════════════════════════════════════════════════════
     const TOWN_COORDS = {
-      "Town of Westchester": { lat: 40.839, lng: -73.843, color: "#e85d4a" },
-      "Fordham":             { lat: 40.861, lng: -73.889, color: "#d4a017" },
-      "Morrisania":          { lat: 40.828, lng: -73.905, color: "#6aa84f" },
-      "East Chester":        { lat: 40.890, lng: -73.825, color: "#7c4dff" },
-      "Yunkers":             { lat: 40.900, lng: -73.900, color: "#e67c73" },
-      "Pelham":              { lat: 40.858, lng: -73.805, color: "#4fc3f7" },
-      "Westchester County":  { lat: 40.845, lng: -73.865, color: "#ff9800" },
+      "Town of Westchester": { lat: 40.839, lng: -73.843, color: "#0061A0" },
+      "Fordham":             { lat: 40.861, lng: -73.889, color: "#84BD00" },
+      "Morrisania":          { lat: 40.828, lng: -73.905, color: "#3389BD" },
+      "East Chester":        { lat: 40.890, lng: -73.825, color: "#6a9a00" },
+      "Yunkers":             { lat: 40.900, lng: -73.900, color: "#004d80" },
+      "Pelham":              { lat: 40.858, lng: -73.805, color: "#9ed42e" },
+      "Westchester County":  { lat: 40.845, lng: -73.865, color: "#0078C8" },
     };
 
-    // Year era colors for marker circles
+    // Year era colors — Lehman Blue (early) → Lehman Green (late)
     const YEAR_COLORS = {
-      1698: "#a85232",
-      1712: "#b87333",
-      1731: "#c49344",
-      1737: "#d4a356",
-      1743: "#c4b078",
-      1746: "#a0a060",
-      1749: "#7a9a50",
-      1755: "#508a60",
-      1756: "#406a80",
-      1771: "#305a90",
+      1698: "#003d66",
+      1712: "#004d80",
+      1731: "#0061A0",
+      1737: "#0078C8",
+      1743: "#2890C8",
+      1746: "#3a9a60",
+      1749: "#559a30",
+      1755: "#6aaa10",
+      1756: "#78B800",
+      1771: "#84BD00",
     };
 
     // ══════════════════════════════════════════════════════════════════════
@@ -821,26 +913,127 @@
 
       content.innerHTML = html;
 
-      // Position card: on mobile it uses CSS bottom positioning,
-      // on desktop it sits to the right of the panel
+      // Position card: CSS handles placement (bottom-right on desktop, bottom on mobile)
+      // Clear any old inline styles
+      card.style.top = '';
+      card.style.left = '';
       const isMobile = window.innerWidth <= 768;
       if (isMobile) {
-        card.style.top = '';
-        card.style.left = '12px';
         // Close the panel drawer so the card is visible
         document.getElementById('panel').classList.remove('open');
         const toggleBtn = document.getElementById('panel-toggle');
         toggleBtn.classList.remove('panel-open');
         toggleBtn.textContent = 'View Census Records';
-      } else {
-        card.style.top = '60px';
-        card.style.left = '392px';
       }
       card.classList.add('visible');
+
+      // Highlight the active marker
+      highlightActiveMarker(record);
+
+      // Pan map so the marker is visible above/beside the card
+      if (coords) {
+        map.panTo({ lat: coords.lat, lng: coords.lng });
+        // Desktop: shift left & up so marker isn't behind the bottom-right card
+        // Mobile: shift up so marker isn't behind the bottom sheet
+        setTimeout(() => {
+          map.panBy(isMobile ? 0 : -180, isMobile ? -140 : -160);
+        }, 100);
+      }
+    }
+
+    let activeMarkerEl = null;
+    function highlightActiveMarker(record) {
+      // Remove previous highlight
+      if (activeMarkerEl) {
+        activeMarkerEl.classList.remove('marker-active');
+        activeMarkerEl = null;
+      }
+      // Find the matching marker and highlight it
+      const match = censusMarkers.find(m => m.record === record);
+      if (match) {
+        const el = match.marker.content;
+        if (el) {
+          el.classList.add('marker-active');
+          activeMarkerEl = el;
+        }
+      }
     }
 
     function hideInfoCard() {
       document.getElementById('info-card').classList.remove('visible');
+      if (activeMarkerEl) { activeMarkerEl.classList.remove('marker-active'); activeMarkerEl = null; }
+    }
+
+    function hideInfoCardAndBack() {
+      document.getElementById('info-card').classList.remove('visible');
+      if (activeMarkerEl) { activeMarkerEl.classList.remove('marker-active'); activeMarkerEl = null; }
+      const panelEl = document.getElementById('panel');
+      const toggleBtn = document.getElementById('panel-toggle');
+      panelEl.classList.add('open');
+      toggleBtn.classList.add('panel-open');
+      toggleBtn.textContent = 'Close';
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  TOOLTIP BUBBLES (multiple can be open)
+    // ══════════════════════════════════════════════════════════════════════
+    const openInfoWindows = [];
+
+    function openTooltip(record, markerObj, lat, lng) {
+      const names = parseNames(record.names);
+      const previewNames = names.slice(0, 8);
+      const remaining = names.length - previewNames.length;
+
+      let html = `<div class="tooltip-bubble">
+        <h3>${record.town}</h3>
+        <span class="tt-year">${record.year} Census</span>
+        <div class="tt-count"><strong>${record.count.toLocaleString()}</strong> enslaved people</div>`;
+
+      if (previewNames.length > 0) {
+        html += `<div class="tt-names">
+          ${previewNames.map(n => `<span class="tt-name">${n}</span>`).join('')}
+        </div>`;
+        if (remaining > 0) {
+          html += `<span class="tt-more" data-town="${record.town}" data-year="${record.year}">+ ${remaining} more names…</span>`;
+        }
+      }
+      html += `</div>`;
+
+      const iw = new google.maps.InfoWindow({
+        content: html,
+        position: { lat, lng },
+        maxWidth: 300,
+      });
+
+      iw.open(map, markerObj);
+      openInfoWindows.push(iw);
+
+      // Highlight marker
+      const el = markerObj.content;
+      if (el) el.classList.add('marker-active');
+
+      // On close, remove highlight
+      iw.addListener('closeclick', () => {
+        if (el) el.classList.remove('marker-active');
+        const idx = openInfoWindows.indexOf(iw);
+        if (idx > -1) openInfoWindows.splice(idx, 1);
+      });
+
+      // After DOM renders, wire up "more names" link
+      google.maps.event.addListenerOnce(iw, 'domready', () => {
+        const moreLink = document.querySelector(`.tt-more[data-town="${record.town}"][data-year="${record.year}"]`);
+        if (moreLink) {
+          moreLink.addEventListener('click', () => {
+            showInfoCard(record);
+          });
+        }
+      });
+    }
+
+    function closeAllTooltips() {
+      openInfoWindows.forEach(iw => iw.close());
+      openInfoWindows.length = 0;
+      document.querySelectorAll('.marker-active').forEach(el => el.classList.remove('marker-active'));
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -872,25 +1065,26 @@
         const el = document.createElement('div');
         el.style.cssText = `
           width: ${size}px; height: ${size}px; border-radius: 50%;
-          background: radial-gradient(circle at 35% 35%, ${yearColor}, ${adjustColor(yearColor, -40)});
+          background: radial-gradient(circle at 35% 35%, ${adjustColor(yearColor, 30)}, ${yearColor});
           border: 2.5px solid ${townColor};
           display: flex; align-items: center; justify-content: center;
-          font-size: ${size < 40 ? 10 : 12}px; font-weight: 700; color: #fff;
-          font-family: 'Georgia', serif;
+          font-size: ${size < 40 ? 11 : 13}px; font-weight: 700; color: #fff;
+          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
           cursor: pointer; position: relative;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
           transition: transform 0.15s;
         `;
         el.textContent = record.count > 999 ? (record.count / 1000).toFixed(1) + 'k' : record.count;
         el.title = `${record.year} — ${record.town}: ${record.count} enslaved`;
 
-        // Names indicator dot
+        // Names indicator dot (Lehman Green)
         if (hasNames) {
           const dot = document.createElement('div');
           dot.style.cssText = `
             position: absolute; top: -2px; right: -2px;
-            width: 10px; height: 10px; border-radius: 50%;
-            background: #ffc13b; border: 1.5px solid #120e0a;
+            width: 11px; height: 11px; border-radius: 50%;
+            background: #84BD00; border: 1.5px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
           `;
           dot.title = 'Names recorded';
           el.appendChild(dot);
@@ -900,10 +1094,11 @@
         const lbl = document.createElement('div');
         lbl.style.cssText = `
           position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
-          white-space: nowrap; font-size: 9px; font-weight: 700;
-          color: #fff; background: rgba(0,0,0,0.7); padding: 1px 5px;
+          white-space: nowrap; font-size: 10px; font-weight: 700;
+          color: #fff; background: rgba(0,61,102,0.85); padding: 2px 6px;
           border-radius: 3px; pointer-events: none;
-          font-family: system-ui, sans-serif;
+          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+          letter-spacing: 0.3px;
         `;
         lbl.textContent = record.year;
         el.appendChild(lbl);
@@ -914,8 +1109,7 @@
         });
 
         marker.addListener('click', () => {
-          map.panTo({ lat, lng });
-          showInfoCard(record);
+          openTooltip(record, marker, lat, lng);
         });
 
         el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.15)'; });
@@ -959,13 +1153,46 @@
       await loadImage('BlacksInTheColonialBronx.png');
       createCensusMarkers();
 
+      // Red dotted route connecting colonial towns (movie-map style)
+      const townPath = [
+        TOWN_COORDS["Yunkers"],
+        TOWN_COORDS["Fordham"],
+        TOWN_COORDS["Morrisania"],
+        TOWN_COORDS["Westchester County"],
+        TOWN_COORDS["Town of Westchester"],
+        TOWN_COORDS["Pelham"],
+        TOWN_COORDS["East Chester"],
+      ].map(t => ({ lat: t.lat, lng: t.lng }));
+
+      // Dashed red line
+      const townPolyline = new google.maps.Polyline({
+        path: townPath,
+        geodesic: true,
+        strokeColor: '#CC0000',
+        strokeOpacity: 0,
+        strokeWeight: 0,
+        icons: [
+          {
+            icon: { path: 'M 0,-1 0,1', strokeColor: '#CC0000', strokeOpacity: 0.85, strokeWeight: 2, scale: 2.5 },
+            offset: '0',
+            repeat: '12px',
+          },
+        ],
+        map: map,
+      });
+
+      // Route toggle
+      document.getElementById('route-toggle').addEventListener('change', e => {
+        townPolyline.setMap(e.target.checked ? map : null);
+      });
+
       // Map redraw listeners
       map.addListener('bounds_changed', renderOverlay);
       map.addListener('zoom_changed', renderOverlay);
       map.addListener('idle', renderOverlay);
 
-      // Close info card on map click
-      map.addListener('click', hideInfoCard);
+      // Close info card and tooltips on map click
+      map.addListener('click', () => { hideInfoCard(); closeAllTooltips(); });
 
       // UI wiring
       document.getElementById('opacity-slider').addEventListener('input', e => {
@@ -976,7 +1203,8 @@
         overlayVisible = e.target.checked;
         renderOverlay();
       });
-      document.getElementById('close-card').addEventListener('click', hideInfoCard);
+      document.getElementById('close-card-desktop').addEventListener('click', hideInfoCard);
+      document.getElementById('close-card-mobile').addEventListener('click', hideInfoCardAndBack);
 
       // Mobile panel toggle
       const panelEl = document.getElementById('panel');
