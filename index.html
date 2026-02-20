@@ -1,12 +1,722 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Enslaved Africans in the Bronx</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enslaved Africans in the Bronx — Georeferencing Tool</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #f59e0b;
+      --accent-dim: rgba(245, 158, 11, 0.15);
+    }
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* ── Map ────────────────────────────────────────────────────────── */
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+
+    /* ── Top Toolbar ─────────────────────────────────────────────────── */
+    #toolbar-top {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      gap: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .toolbar-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .toolbar-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #status {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    /* ── Bottom Toolbar ──────────────────────────────────────────────── */
+    #toolbar-bottom {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      gap: 16px;
+      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .opacity-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .opacity-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    #opacity-slider {
+      flex: 1;
+      max-width: 260px;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    #opacity-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--surface);
+      box-shadow: 0 0 0 2px var(--accent);
+      cursor: grab;
+    }
+
+    #opacity-slider::-webkit-slider-thumb:active {
+      cursor: grabbing;
+    }
+
+    #opacity-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--surface);
+      box-shadow: 0 0 0 2px var(--accent);
+      cursor: grab;
+    }
+
+    #opacity-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      min-width: 36px;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn--primary {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: var(--accent);
+    }
+
+    .btn--primary:hover {
+      background: #fbbf24;
+      border-color: #fbbf24;
+    }
+
+    .btn--secondary {
+      background: var(--bg);
+      color: var(--text-secondary);
+      border-color: var(--border);
+    }
+
+    .btn--secondary:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+
+    .btn--ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border-color: transparent;
+    }
+
+    .btn--ghost:hover {
+      color: var(--text-secondary);
+      border-color: var(--border);
+      background: var(--bg);
+    }
+
+    /* ── Corner Handles ──────────────────────────────────────────────── */
+    .corner-handle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(245, 158, 11, 0.4);
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .corner-handle:hover {
+      transform: scale(1.25);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(245, 158, 11, 0.5);
+    }
+
+    .corner-handle__label {
+      font-size: 7px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: 0.3px;
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* ── Corner help legend ──────────────────────────────────────────── */
+    #help-panel {
+      position: fixed;
+      top: 68px;
+      right: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      z-index: 100;
+      font-size: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      max-width: 220px;
+    }
+
+    .help-panel__title {
+      font-weight: 700;
+      font-size: 12px;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .help-panel__step {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 4px 0;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      font-size: 11px;
+    }
+
+    .help-panel__num {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .help-panel__close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 20px;
+      height: 20px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+
+    .help-panel__close:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    /* ── Mobile ──────────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .toolbar-title {
+        font-size: 11px;
+      }
+
+      #help-panel {
+        display: none;
+      }
+
+      #opacity-slider {
+        max-width: 120px;
+      }
+
+      .btn {
+        padding: 5px 10px;
+        font-size: 11px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>Enslaved Africans in the Bronx</h1>
-  <p>Coming soon.</p>
+
+  <div id="map"></div>
+
+  <!-- Top toolbar -->
+  <div id="toolbar-top">
+    <div class="toolbar-left">
+      <div class="toolbar-title">ENSLAVED AFRICANS IN THE BRONX &mdash; Georeferencing Tool</div>
+      <div id="status">Loading default map&hellip;</div>
+    </div>
+    <div class="toolbar-right">
+      <label class="btn btn--secondary" for="file-upload">&#8679; Upload Map</label>
+      <input id="file-upload" type="file" accept="image/*" hidden>
+      <button id="reset-btn" class="btn btn--ghost">&#8635; Reset</button>
+    </div>
+  </div>
+
+  <!-- Help panel -->
+  <div id="help-panel">
+    <div class="help-panel__title">How to align</div>
+    <button class="help-panel__close" id="help-close" aria-label="Close">&times;</button>
+    <div class="help-panel__step">
+      <span class="help-panel__num">1</span>
+      <span>Drag the 4 amber handles to match geographic features (coastlines, rivers)</span>
+    </div>
+    <div class="help-panel__step">
+      <span class="help-panel__num">2</span>
+      <span>Adjust opacity to compare historical vs. modern</span>
+    </div>
+    <div class="help-panel__step">
+      <span class="help-panel__num">3</span>
+      <span>Click <strong>Save Georef JSON</strong> when aligned</span>
+    </div>
+  </div>
+
+  <!-- Bottom toolbar -->
+  <div id="toolbar-bottom">
+    <div class="opacity-control">
+      <span class="opacity-label">Opacity</span>
+      <input id="opacity-slider" type="range" min="0" max="100" value="60" aria-label="Map overlay opacity">
+      <span id="opacity-value">60%</span>
+    </div>
+    <button id="save-btn" class="btn btn--primary">&#8595; Save Georef JSON</button>
+  </div>
+
+  <script>
+    // ── Default corner positions (geographic bounds of the Bronx) ─────────
+    // Order: NW → top-left of image, NE → top-right, SE → bottom-right, SW → bottom-left
+    const DEFAULT_CORNERS = [
+      { lat: 40.9176, lng: -73.9330 }, // NW
+      { lat: 40.9176, lng: -73.7654 }, // NE
+      { lat: 40.7855, lng: -73.7654 }, // SE
+      { lat: 40.7855, lng: -73.9330 }, // SW
+    ];
+
+    const CORNER_LABELS = ['NW', 'NE', 'SE', 'SW'];
+
+    // ── Module state ──────────────────────────────────────────────────────
+    let map, overlay, handleMarkers = [];
+    let currentCorners = DEFAULT_CORNERS.map(c => ({ ...c }));
+
+    // ── Gaussian elimination — solves Ax = b (n×n system) ────────────────
+    function gaussianElimination(A, b) {
+      const n = b.length;
+      // Build augmented matrix [A | b]
+      const M = A.map((row, i) => [...row, b[i]]);
+
+      for (let col = 0; col < n; col++) {
+        // Partial pivot: find row with largest absolute value in this column
+        let maxRow = col;
+        for (let row = col + 1; row < n; row++) {
+          if (Math.abs(M[row][col]) > Math.abs(M[maxRow][col])) maxRow = row;
+        }
+        [M[col], M[maxRow]] = [M[maxRow], M[col]];
+
+        if (Math.abs(M[col][col]) < 1e-10) continue; // near-singular column
+
+        // Eliminate all other rows
+        for (let row = 0; row < n; row++) {
+          if (row === col) continue;
+          const factor = M[row][col] / M[col][col];
+          for (let k = col; k <= n; k++) {
+            M[row][k] -= factor * M[col][k];
+          }
+        }
+      }
+
+      return M.map((row, i) => row[n] / row[i]);
+    }
+
+    // ── Compute CSS matrix3d from 4-point projective correspondence ───────
+    // src4: [[sx0,sy0], …, [sx3,sy3]]  — image pixel corners
+    // dst4: [[dx0,dy0], …, [dx3,dy3]]  — screen pixel destinations
+    // Returns: 16-value array for CSS matrix3d()
+    function computeMatrix3d(src4, dst4) {
+      // Build 8×8 linear system for homography H (normalized: H[2][2] = 1)
+      // Unknowns: [H00, H01, H02, H10, H11, H12, H20, H21]
+      // For each point i:
+      //   row 2i:   [sx, sy, 1,  0,  0, 0, -sx*dx, -sy*dx]  = dx
+      //   row 2i+1: [0,  0,  0, sx, sy, 1, -sx*dy, -sy*dy]  = dy
+      const A = [];
+      const b = [];
+
+      for (let i = 0; i < 4; i++) {
+        const [sx, sy] = src4[i];
+        const [dx, dy] = dst4[i];
+
+        A.push([sx, sy, 1, 0, 0, 0, -sx * dx, -sy * dx]);
+        b.push(dx);
+
+        A.push([0, 0, 0, sx, sy, 1, -sx * dy, -sy * dy]);
+        b.push(dy);
+      }
+
+      const h = gaussianElimination(A, b);
+
+      // Reconstruct H as a 3×3 matrix (row-major)
+      const H = [
+        [h[0], h[1], h[2]], // x equation
+        [h[3], h[4], h[5]], // y equation
+        [h[6], h[7], 1    ]  // w equation (H22 = 1)
+      ];
+
+      // Convert H to CSS matrix3d (column-major, 4×4 with z passthrough)
+      // matrix3d(m0,m1,…,m15) represents:
+      //   [m0  m4  m8  m12]
+      //   [m1  m5  m9  m13]
+      //   [m2  m6  m10 m14]
+      //   [m3  m7  m11 m15]
+      // For [x,y,0,1] input: x'=H00*x+H01*y+H02, y'=H10*x+H11*y+H12, w'=H20*x+H21*y+1
+      return [
+        H[0][0], H[1][0], 0, H[2][0],  // col 0
+        H[0][1], H[1][1], 0, H[2][1],  // col 1
+        0,       0,       1, 0,          // col 2 (z passthrough)
+        H[0][2], H[1][2], 0, H[2][2]   // col 3 (translation + perspective)
+      ];
+    }
+
+    // ── Historical Map Overlay (OverlayView subclass) ─────────────────────
+    // Defined inside initMap so google.maps is available
+    let HistoricalMapOverlay;
+
+    function defineOverlayClass() {
+      HistoricalMapOverlay = class extends google.maps.OverlayView {
+        constructor(imageUrl, corners) {
+          super();
+          this.imageUrl = imageUrl;
+          this.corners  = corners; // array of {lat, lng} — updated externally
+          this.img      = null;
+          this.opacity  = 0.6;
+        }
+
+        onAdd() {
+          const pane = this.getPanes().overlayLayer;
+
+          this.img = document.createElement('img');
+          this.img.src = this.imageUrl;
+          this.img.style.cssText = [
+            'position: absolute',
+            'top: 0',
+            'left: 0',
+            'transform-origin: 0 0',
+            'pointer-events: none',
+            `opacity: ${this.opacity}`,
+            'will-change: transform',
+          ].join('; ');
+
+          this.img.addEventListener('load',  () => this.draw());
+          this.img.addEventListener('error', () => setStatus(
+            'Default image not found — click \u201cUpload Map\u201d to load your scan'
+          ));
+
+          pane.appendChild(this.img);
+        }
+
+        draw() {
+          if (!this.img || !this.img.complete || !this.img.naturalWidth) return;
+          const proj = this.getProjection();
+          if (!proj) return;
+
+          const imgW = this.img.naturalWidth;
+          const imgH = this.img.naturalHeight;
+
+          // Source corners: image pixel space
+          // Order must match currentCorners: NW→[0,0], NE→[W,0], SE→[W,H], SW→[0,H]
+          const src = [
+            [0,    0   ],
+            [imgW, 0   ],
+            [imgW, imgH],
+            [0,    imgH],
+          ];
+
+          // Destination corners: pane pixel positions of each handle
+          const dst = this.corners.map(corner => {
+            const pt = proj.fromLatLngToDivPixel(
+              new google.maps.LatLng(corner.lat, corner.lng)
+            );
+            if (!pt) return [0, 0];
+            return [pt.x, pt.y];
+          });
+
+          const mat = computeMatrix3d(src, dst);
+
+          this.img.style.width  = imgW + 'px';
+          this.img.style.height = imgH + 'px';
+          this.img.style.transform = `matrix3d(${mat.join(',')})`;
+        }
+
+        onRemove() {
+          if (this.img && this.img.parentNode) {
+            this.img.parentNode.removeChild(this.img);
+          }
+          this.img = null;
+        }
+
+        setOpacity(val) {
+          this.opacity = val;
+          if (this.img) this.img.style.opacity = val;
+        }
+
+        updateImage(url) {
+          this.imageUrl = url;
+          if (this.img) {
+            this.img.addEventListener('load', () => this.draw(), { once: true });
+            this.img.src = url;
+          }
+        }
+      };
+    }
+
+    // ── Helper: lat/lng from AdvancedMarkerElement position ───────────────
+    function extractLatLng(pos) {
+      if (!pos) return null;
+      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat;
+      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng;
+      return { lat, lng };
+    }
+
+    // ── Status message ────────────────────────────────────────────────────
+    function setStatus(msg) {
+      const el = document.getElementById('status');
+      if (el) el.textContent = msg;
+    }
+
+    // ── Reset handles to default Bronx bounds ────────────────────────────
+    function resetHandles() {
+      DEFAULT_CORNERS.forEach((corner, i) => {
+        currentCorners[i] = { ...corner };
+        if (handleMarkers[i]) {
+          handleMarkers[i].position = new google.maps.LatLng(corner.lat, corner.lng);
+        }
+      });
+      overlay.draw();
+      map.panTo({ lat: 40.8448, lng: -73.8648 });
+      map.setZoom(12);
+      setStatus('Handles reset to default Bronx bounds');
+    }
+
+    // ── Save georef JSON ──────────────────────────────────────────────────
+    function saveGeoref() {
+      const data = {
+        corners: currentCorners.map((c, i) => ({
+          position: CORNER_LABELS[i],
+          lat: c.lat,
+          lng: c.lng,
+        })),
+        opacity: parseFloat(document.getElementById('opacity-slider').value) / 100,
+        savedAt: new Date().toISOString(),
+        notes: 'Generated by Enslaved Africans in the Bronx — georeferencing tool (Phase 1)',
+      };
+
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'georef-1750-bronx.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setStatus('Saved \u2014 georef-1750-bronx.json downloaded');
+    }
+
+    // ── Main init ─────────────────────────────────────────────────────────
+    async function initMap() {
+      const { Map }                   = await google.maps.importLibrary('maps');
+      const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
+
+      defineOverlayClass();
+
+      // Create map (same center/zoom/ID as Lenape map)
+      map = new Map(document.getElementById('map'), {
+        center:              { lat: 40.8448, lng: -73.8648 },
+        zoom:                12,
+        minZoom:             10,
+        maxZoom:             19,
+        mapId:               'a9461ba5f543306b87fc900f',
+        mapTypeControl:      false,
+        streetViewControl:   false,
+        fullscreenControl:   true,
+        zoomControl:         true,
+        zoomControlOptions:  { position: google.maps.ControlPosition.RIGHT_CENTER },
+      });
+
+      // Create overlay with the default pre-loaded image
+      overlay = new HistoricalMapOverlay('BlacksInTheColonialBronx.png', currentCorners);
+      overlay.setMap(map);
+
+      // ── Corner handle markers ──────────────────────────────────────────
+      CORNER_LABELS.forEach((label, i) => {
+        const el = document.createElement('div');
+        el.className = 'corner-handle';
+        el.setAttribute('aria-label', label + ' corner handle — drag to align');
+        el.innerHTML = `<span class="corner-handle__label">${label}</span>`;
+
+        const marker = new AdvancedMarkerElement({
+          map,
+          position:      new google.maps.LatLng(currentCorners[i].lat, currentCorners[i].lng),
+          content:       el,
+          gmpDraggable:  true,
+          title:         label + ' corner — drag to align',
+        });
+
+        marker.addListener('drag', () => {
+          const pos = extractLatLng(marker.position);
+          if (!pos) return;
+          currentCorners[i] = pos;
+          overlay.draw();
+        });
+
+        marker.addListener('dragstart', () => {
+          setStatus('Dragging ' + label + ' corner\u2026');
+        });
+
+        marker.addListener('dragend', () => {
+          const pos = extractLatLng(marker.position);
+          if (pos) currentCorners[i] = pos;
+          overlay.draw();
+          setStatus('Drag any handle to continue aligning \u2014 then Save Georef JSON');
+        });
+
+        handleMarkers.push(marker);
+      });
+
+      // ── Opacity slider ─────────────────────────────────────────────────
+      const slider  = document.getElementById('opacity-slider');
+      const valEl   = document.getElementById('opacity-value');
+
+      slider.addEventListener('input', () => {
+        valEl.textContent = slider.value + '%';
+        overlay.setOpacity(slider.value / 100);
+      });
+
+      // ── File upload ────────────────────────────────────────────────────
+      document.getElementById('file-upload').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.addEventListener('load', evt => {
+          overlay.updateImage(evt.target.result);
+          setStatus(`\u201c${file.name}\u201d loaded \u2014 drag handles to align`);
+        });
+        reader.readAsDataURL(file);
+        e.target.value = ''; // allow re-uploading same file
+      });
+
+      // ── Reset button ───────────────────────────────────────────────────
+      document.getElementById('reset-btn').addEventListener('click', resetHandles);
+
+      // ── Save button ────────────────────────────────────────────────────
+      document.getElementById('save-btn').addEventListener('click', saveGeoref);
+
+      // ── Help panel close ───────────────────────────────────────────────
+      document.getElementById('help-close').addEventListener('click', () => {
+        document.getElementById('help-panel').style.display = 'none';
+      });
+
+      setStatus('Drag the amber handles to align the 1750 map \u2014 then Save Georef JSON');
+    }
+  </script>
+
+  <script
+    async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDODtJJwm_y9aQieG3gE3_wAi4bjL7bfvg&callback=initMap&libraries=marker&v=weekly">
+  </script>
+
 </body>
 </html>
