@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enslaved Africans in the Colonial Bronx — Census Data Map</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Georgia', serif; }
+    #map { width: 100%; height: 100%; }
+
+    /* Overlay canvas */
+    #overlay-canvas {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 1;
+    }
+
+    /* ── Left panel ─────────────────────────────────────── */
+    .panel {
+      position: fixed; top: 0; left: 0; z-index: 10;
+      width: 340px; height: 100vh; overflow-y: auto;
+      background: rgba(18, 14, 10, 0.94); backdrop-filter: blur(12px);
+      color: #e8dcc8; padding: 20px; font-size: 13px;
+      border-right: 1px solid rgba(255,193,59,0.15);
+    }
+    .panel h1 {
+      font-size: 18px; color: #ffc13b; margin-bottom: 2px;
+      font-family: 'Georgia', serif; letter-spacing: 0.3px;
+    }
+    .panel .subtitle {
+      font-size: 11px; color: #a89070; margin-bottom: 16px;
+      font-style: italic;
+    }
+
+    /* Summary stats */
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .stat-card {
+      background: rgba(255,193,59,0.08); border: 1px solid rgba(255,193,59,0.15);
+      border-radius: 8px; padding: 10px; text-align: center;
+    }
+    .stat-card .number { font-size: 22px; font-weight: 700; color: #ffc13b; }
+    .stat-card .label { font-size: 10px; color: #a89070; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Timeline filter */
+    .section-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+      color: #a89070; margin: 14px 0 8px; font-family: system-ui, sans-serif;
+    }
+    .year-filters {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px;
+    }
+    .year-btn {
+      padding: 5px 10px; border: 1px solid rgba(255,193,59,0.25);
+      border-radius: 5px; background: transparent; color: #c8b080;
+      font-size: 11px; cursor: pointer; transition: all 0.15s;
+      font-family: 'Georgia', serif;
+    }
+    .year-btn:hover { background: rgba(255,193,59,0.12); color: #ffc13b; }
+    .year-btn.active {
+      background: rgba(255,193,59,0.2); border-color: #ffc13b;
+      color: #ffc13b; font-weight: 700;
+    }
+
+    /* Town legend */
+    .town-legend { margin-bottom: 14px; }
+    .town-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 0; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .town-item:hover { background: rgba(255,255,255,0.03); }
+    .town-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .town-name { flex: 1; font-size: 12px; }
+    .town-count { color: #a89070; font-size: 11px; font-family: monospace; }
+
+    /* Overlay controls */
+    .overlay-controls {
+      background: rgba(255,193,59,0.06); border: 1px solid rgba(255,193,59,0.12);
+      border-radius: 8px; padding: 12px; margin-bottom: 14px;
+    }
+    .overlay-controls label { font-size: 12px; display: flex; align-items: center; gap: 8px; }
+    .overlay-controls input[type=range] { flex: 1; accent-color: #ffc13b; }
+    .overlay-controls .row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+
+    /* Record list */
+    .record-list { margin-top: 8px; }
+    .record-item {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px; padding: 10px; margin-bottom: 6px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .record-item:hover { background: rgba(255,193,59,0.08); }
+    .record-year { font-size: 10px; color: #a89070; text-transform: uppercase; letter-spacing: 0.5px; }
+    .record-town { font-size: 13px; font-weight: 600; color: #e8dcc8; }
+    .record-count { font-size: 11px; color: #ffc13b; }
+
+    /* ── Info card (appears on marker click) ─────────────── */
+    .info-card {
+      position: fixed; z-index: 20;
+      width: 360px; max-height: 80vh; overflow-y: auto;
+      background: rgba(18, 14, 10, 0.96); backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,193,59,0.3); border-radius: 12px;
+      padding: 20px; color: #e8dcc8; display: none;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    }
+    .info-card.visible { display: block; }
+    .info-card .close-btn {
+      position: absolute; top: 10px; right: 12px;
+      background: none; border: none; color: #a89070;
+      font-size: 18px; cursor: pointer;
+    }
+    .info-card .close-btn:hover { color: #ffc13b; }
+    .info-card h2 { font-size: 16px; color: #ffc13b; margin-bottom: 2px; }
+    .info-card .year-badge {
+      display: inline-block; background: rgba(255,193,59,0.15);
+      border: 1px solid rgba(255,193,59,0.3); border-radius: 4px;
+      padding: 2px 8px; font-size: 11px; color: #ffc13b; margin-bottom: 10px;
+    }
+    .info-card .count-line { font-size: 14px; margin-bottom: 10px; }
+    .info-card .names-section { margin-top: 10px; }
+    .info-card .names-section h4 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: #a89070; margin-bottom: 6px;
+    }
+    .info-card .name-list {
+      display: flex; flex-wrap: wrap; gap: 4px;
+    }
+    .info-card .name-tag {
+      background: rgba(255,193,59,0.1); border: 1px solid rgba(255,193,59,0.2);
+      border-radius: 4px; padding: 3px 8px; font-size: 11px; color: #e8dcc8;
+    }
+    .info-card .note {
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 11px; color: #a89070; font-style: italic;
+    }
+
+    /* ── Load georef banner ──────────────────────────────── */
+    .georef-load {
+      margin-bottom: 14px; text-align: center;
+    }
+    .georef-load .load-btn {
+      padding: 8px 16px; border: 1px dashed rgba(255,193,59,0.4);
+      border-radius: 6px; background: transparent; color: #c8b080;
+      font-size: 12px; cursor: pointer; transition: all 0.15s;
+      font-family: 'Georgia', serif;
+    }
+    .georef-load .load-btn:hover { background: rgba(255,193,59,0.1); color: #ffc13b; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <canvas id="overlay-canvas"></canvas>
+
+  <!-- Left panel -->
+  <div class="panel" id="panel">
+    <h1>Enslaved Africans in the Colonial Bronx</h1>
+    <div class="subtitle">Census records, 1698 &ndash; 1771 &bull; Lehman College data</div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="section-title">1750 Map Overlay</div>
+    <div class="overlay-controls">
+      <label>
+        Opacity
+        <input type="range" id="opacity-slider" min="0" max="100" value="50">
+        <span id="opacity-val">50%</span>
+      </label>
+      <div class="row">
+        <label style="font-size:11px">
+          <input type="checkbox" id="overlay-toggle" checked> Show overlay
+        </label>
+      </div>
+    </div>
+    <div class="georef-load">
+      <button class="load-btn" id="load-georef-btn">Load saved georef JSON</button>
+      <input type="file" id="georef-input" accept=".json" style="display:none">
+    </div>
+
+    <div class="section-title">Filter by Census Year</div>
+    <div class="year-filters" id="year-filters"></div>
+
+    <div class="section-title">Towns</div>
+    <div class="town-legend" id="town-legend"></div>
+
+    <div class="section-title">Records</div>
+    <div class="record-list" id="record-list"></div>
+  </div>
+
+  <!-- Info card (shown on marker click) -->
+  <div class="info-card" id="info-card">
+    <button class="close-btn" id="close-card">&times;</button>
+    <div id="card-content"></div>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════════════════════════════════
+    //  CENSUS DATA (parsed from LehmanCensusDataSlavePeopleForMoya.xlsx)
+    // ══════════════════════════════════════════════════════════════════════
+    const CENSUS_DATA = [
+      {
+        year: 1698, town: "Town of Westchester",
+        names: "John; Hessone; Charretty; Jeak; Tobe; Cate; Abagail; Moll; Marcy; Japtha; Jonno; Jack; Jack; Tony; Sampson; Geak; Genne; Tonne; Lull; Sanders; Peter",
+        count: 21
+      },
+      {
+        year: 1698, town: "Fordham",
+        names: "Adum; Hetter; Tone; Marce; Ester; Tobe; Belle; Pottefe; Class; Tom; Gack; Panhange; Moll; Grass; Squier; Tom; Tom; Tom; Hanna; Cube; Harra; Margaret; Seser; Harre; Great; Mary; Deanna; Sare; Hetter; Tonne; Marce; Hester; Antone; Dianna; Ben; Abraham; Jacob",
+        count: 37
+      },
+      {
+        year: 1698, town: "Morrisania",
+        names: "Hanniball; Shantee; Robbin; Soliman; Jack; Harry; Bracoe; Bebo; Captn; Abashe; Sambo; Avida; Hannah; Mando; Frank; Alce; Lily; Mary Indian; Harry; Oting; Benjamin; William; Mathias; Scipio; Sussanna; Hester; Mary; Indian Margaret; Haegar; Hene",
+        count: 30
+      },
+      { year: 1712, town: "Westchester County", names: null, count: 16 },
+      { year: 1712, town: "East Chester", names: null, count: 5 },
+      { year: 1712, town: "Yunkers", names: null, count: 8 },
+      { year: 1712, town: "Morrisania", names: null, count: 1 },
+      { year: 1712, town: "Pelham", names: null, count: 9 },
+      { year: 1731, town: "Westchester County", names: null, count: 692 },
+      { year: 1737, town: "Westchester County", names: null, count: 851 },
+      { year: 1743, town: "Westchester County", names: null, count: 448 },
+      { year: 1746, town: "Westchester County", names: null, count: 672 },
+      { year: 1749, town: "Westchester County", names: null, count: 1136 },
+      {
+        year: 1755, town: "Morrisania",
+        names: "Samson Blind; Mulatto Hany; Mandos Hary; Pawb; Robin; Old Peter; Joseph; YafT; George; Long Peter; John; Daniell; Benjami; Sam Cooper; Simon; Sam; Ando; Peter Short; Ocumah; Dammy",
+        count: 20
+      },
+      {
+        year: 1755, town: "Westchester County",
+        names: "Honnyball; Tom; Tim; Sam; Lew; Jupiter; Class James; Fait; Jacob; Sussanah; Nan; Dafne; Flore; Grace; Ginne; Ginne; James; Fait; Jacob; Tammes; Hester; Herculus; George; Abigail; Lille; Ben; Moses; Johne; Jack; Nell; Will; Tite; Luke; Ginne; Robin; Bess; Lue; Tobe; Hannah; Tonney; Ginne; Fillis; Ginne; Nanney; Hannah; Jack; Newport; Cesar; Charls; Petter; Pinna; Easter; Bell; Tom; Indian Will; Fell Imdus; James Tom; York; Lew; Lew James; Margett; Ginne; Mary; Hannah; Nan; Robin; Agnes; Abrum; Titus; Tobe; Lilk; Ginne; Luce; Ginne; Dick; Cuffe; Lew; Abram; Harry; Ginne; Gin; Dick; Arron; Jerr; Will; Tiss; Suee; Job; Titus; Jo; Abram; Charls; Rose; Geffrey",
+        count: 219
+      },
+      { year: 1756, town: "Westchester County", names: null, count: 1338 },
+      { year: 1771, town: "Westchester County", names: null, count: 3430 },
+    ];
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  COLONIAL TOWN → MODERN COORDINATES
+    // ══════════════════════════════════════════════════════════════════════
+    const TOWN_COORDS = {
+      "Town of Westchester": { lat: 40.839, lng: -73.843, color: "#e85d4a" },
+      "Fordham":             { lat: 40.861, lng: -73.889, color: "#d4a017" },
+      "Morrisania":          { lat: 40.828, lng: -73.905, color: "#6aa84f" },
+      "East Chester":        { lat: 40.890, lng: -73.825, color: "#7c4dff" },
+      "Yunkers":             { lat: 40.900, lng: -73.900, color: "#e67c73" },
+      "Pelham":              { lat: 40.858, lng: -73.805, color: "#4fc3f7" },
+      "Westchester County":  { lat: 40.845, lng: -73.865, color: "#ff9800" },
+    };
+
+    // Year era colors for marker circles
+    const YEAR_COLORS = {
+      1698: "#a85232",
+      1712: "#b87333",
+      1731: "#c49344",
+      1737: "#d4a356",
+      1743: "#c4b078",
+      1746: "#a0a060",
+      1749: "#7a9a50",
+      1755: "#508a60",
+      1756: "#406a80",
+      1771: "#305a90",
+    };
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  MESH WARP OVERLAY (reused from georef-precise.html)
+    // ══════════════════════════════════════════════════════════════════════
+    const IMG_W = 704, IMG_H = 712;
+
+    const CONTROL_POINTS = [
+      { id: 'throgs-neck',  label: 'Throgs Neck Tip',        imgX: 546, imgY: 649, lat: 40.80500, lng: -73.79500 },
+      { id: 'clason-point', label: 'Clason Point',           imgX: 285, imgY: 656, lat: 40.80556, lng: -73.84920 },
+      { id: 'hunts-point',  label: 'Hunts Point',            imgX: 160, imgY: 649, lat: 40.80400, lng: -73.88300 },
+      { id: 'mott-haven',   label: 'Mott Haven / SW Coast',  imgX:  85, imgY: 654, lat: 40.80800, lng: -73.92600 },
+      { id: 'bronx-mouth',  label: 'Bronx River Mouth',      imgX: 228, imgY: 590, lat: 40.80860, lng: -73.85800 },
+      { id: 'spuyten',      label: 'Spuyten Duyvil (NW)',    imgX: 110, imgY: 185, lat: 40.87500, lng: -73.91810 },
+      { id: 'nw-border',    label: 'Riverdale / Yonkers',    imgX: 135, imgY:  92, lat: 40.90750, lng: -73.90400 },
+      { id: 'ne-border',    label: 'Eastchester / Mt Vernon', imgX: 440, imgY:  82, lat: 40.89820, lng: -73.82000 },
+      { id: 'city-island',  label: 'City Island',            imgX: 500, imgY: 260, lat: 40.84720, lng: -73.78610 },
+      { id: 'hart-island',  label: 'Hart Island',            imgX: 645, imgY: 280, lat: 40.85150, lng: -73.76870 },
+      { id: 'img-nw',       label: 'Image NW Corner',        imgX:   5, imgY:   5, lat: 40.9150, lng: -73.9400 },
+      { id: 'img-ne',       label: 'Image NE Corner',        imgX: 699, imgY:   5, lat: 40.9150, lng: -73.7500 },
+      { id: 'img-se',       label: 'Image SE Corner',        imgX: 699, imgY: 707, lat: 40.7900, lng: -73.7500 },
+      { id: 'img-sw',       label: 'Image SW Corner',        imgX:   5, imgY: 707, lat: 40.7900, lng: -73.9400 },
+    ];
+
+    let map, imageElement = null, triangles = [], currentPoints = CONTROL_POINTS.map(p => ({ ...p }));
+    let overlayVisible = true;
+    let censusMarkers = [];
+    let activeYear = null; // null = show all
+
+    // ── Delaunay triangulation (Bowyer-Watson) ─────────────────────────
+    function delaunayTriangulate(points) {
+      const n = points.length;
+      if (n < 3) return [];
+      const minX = Math.min(...points.map(p => p.x)) - 1;
+      const minY = Math.min(...points.map(p => p.y)) - 1;
+      const maxX = Math.max(...points.map(p => p.x)) + 1;
+      const maxY = Math.max(...points.map(p => p.y)) + 1;
+      const dmax = Math.max(maxX - minX, maxY - minY) * 10;
+      const superTri = [
+        { x: minX - dmax, y: minY - dmax },
+        { x: minX + 2 * dmax, y: minY - dmax },
+        { x: minX - dmax, y: minY + 2 * dmax },
+      ];
+      const allPts = points.concat(superTri);
+      const sn = n;
+      let triList = [[sn, sn + 1, sn + 2]];
+
+      function inCircumcircle(tri, px, py) {
+        const [ai, bi, ci] = tri;
+        const ax = allPts[ai].x, ay = allPts[ai].y;
+        const bx = allPts[bi].x, by = allPts[bi].y;
+        const cx = allPts[ci].x, cy = allPts[ci].y;
+        const D = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));
+        if (Math.abs(D) < 1e-12) return false;
+        const ux = ((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/D;
+        const uy = ((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D;
+        return (px-ux)*(px-ux)+(py-uy)*(py-uy) <= (ax-ux)*(ax-ux)+(ay-uy)*(ay-uy);
+      }
+
+      for (let i = 0; i < n; i++) {
+        const px = points[i].x, py = points[i].y;
+        const bad = [];
+        for (let t = 0; t < triList.length; t++) {
+          if (inCircumcircle(triList[t], px, py)) bad.push(t);
+        }
+        const edges = [];
+        for (const t of bad) {
+          const tri = triList[t];
+          for (let e = 0; e < 3; e++) {
+            const a = tri[e], b = tri[(e+1)%3];
+            let shared = false;
+            for (const t2 of bad) {
+              if (t2 === t) continue;
+              const tri2 = triList[t2];
+              for (let e2 = 0; e2 < 3; e2++) {
+                if ((tri2[e2]===a && tri2[(e2+1)%3]===b)||(tri2[e2]===b && tri2[(e2+1)%3]===a))
+                  { shared = true; break; }
+              }
+              if (shared) break;
+            }
+            if (!shared) edges.push([a, b]);
+          }
+        }
+        bad.sort((a, b) => b - a);
+        for (const t of bad) triList.splice(t, 1);
+        for (const [a, b] of edges) triList.push([i, a, b]);
+      }
+      return triList.filter(tri => tri[0] < n && tri[1] < n && tri[2] < n);
+    }
+
+    function latLngToScreenPixel(lat, lng) {
+      const proj = map.getProjection();
+      if (!proj) return null;
+      const worldPoint = proj.fromLatLngToPoint(new google.maps.LatLng(lat, lng));
+      const zoom = map.getZoom();
+      const scale = Math.pow(2, zoom);
+      const bounds = map.getBounds();
+      const topLeftWorld = proj.fromLatLngToPoint(
+        new google.maps.LatLng(bounds.getNorthEast().lat(), bounds.getSouthWest().lng())
+      );
+      return {
+        x: (worldPoint.x - topLeftWorld.x) * scale,
+        y: (worldPoint.y - topLeftWorld.y) * scale,
+      };
+    }
+
+    function renderOverlay() {
+      const canvas = document.getElementById('overlay-canvas');
+      const ctx = canvas.getContext('2d');
+      const w = window.innerWidth, h = window.innerHeight;
+      canvas.width = w * devicePixelRatio;
+      canvas.height = h * devicePixelRatio;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+
+      if (!imageElement || triangles.length === 0 || !overlayVisible) return;
+
+      const opacity = parseFloat(document.getElementById('opacity-slider').value) / 100;
+      ctx.globalAlpha = opacity;
+
+      const screenPts = currentPoints.map(cp => latLngToScreenPixel(cp.lat, cp.lng));
+      if (screenPts.some(p => !p)) return;
+
+      for (const [i, j, k] of triangles) {
+        const sp = [screenPts[i], screenPts[j], screenPts[k]];
+        const ip = [currentPoints[i], currentPoints[j], currentPoints[k]];
+        const sx0 = ip[0].imgX, sy0 = ip[0].imgY;
+        const sx1 = ip[1].imgX, sy1 = ip[1].imgY;
+        const sx2 = ip[2].imgX, sy2 = ip[2].imgY;
+        const dx0 = sp[0].x, dy0 = sp[0].y;
+        const dx1 = sp[1].x, dy1 = sp[1].y;
+        const dx2 = sp[2].x, dy2 = sp[2].y;
+        const det = sx0*(sy1-sy2) + sx1*(sy2-sy0) + sx2*(sy0-sy1);
+        if (Math.abs(det) < 0.001) continue;
+        const a = (dx0*(sy1-sy2) + dx1*(sy2-sy0) + dx2*(sy0-sy1)) / det;
+        const b = (dx0*(sx2-sx1) + dx1*(sx0-sx2) + dx2*(sx1-sx0)) / det;
+        const c_val = (dx0*(sx1*sy2-sx2*sy1) + dx1*(sx2*sy0-sx0*sy2) + dx2*(sx0*sy1-sx1*sy0)) / det;
+        const d = (dy0*(sy1-sy2) + dy1*(sy2-sy0) + dy2*(sy0-sy1)) / det;
+        const e = (dy0*(sx2-sx1) + dy1*(sx0-sx2) + dy2*(sx1-sx0)) / det;
+        const f = (dy0*(sx1*sy2-sx2*sy1) + dy1*(sx2*sy0-sx0*sy2) + dy2*(sx0*sy1-sx1*sy0)) / det;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(dx0, dy0);
+        ctx.lineTo(dx1, dy1);
+        ctx.lineTo(dx2, dy2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.setTransform(
+          a * devicePixelRatio, d * devicePixelRatio,
+          b * devicePixelRatio, e * devicePixelRatio,
+          c_val * devicePixelRatio, f * devicePixelRatio
+        );
+        ctx.drawImage(imageElement, 0, 0);
+        ctx.restore();
+        ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      }
+    }
+
+    function recomputeTriangulation() {
+      const pts = currentPoints.map(cp => ({ x: cp.imgX, y: cp.imgY }));
+      triangles = delaunayTriangulate(pts);
+      renderOverlay();
+    }
+
+    function loadImage(src) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => { imageElement = img; recomputeTriangulation(); resolve(img); };
+        img.onerror = () => { console.error('Failed to load image:', src); resolve(null); };
+        img.src = src;
+      });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  LOAD GEOREF JSON
+    // ══════════════════════════════════════════════════════════════════════
+    function loadGeorefJSON(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.controlPoints) {
+            data.controlPoints.forEach(loaded => {
+              const idx = currentPoints.findIndex(cp => cp.id === loaded.id);
+              if (idx >= 0) {
+                currentPoints[idx].lat = loaded.lat;
+                currentPoints[idx].lng = loaded.lng;
+                if (loaded.imgX != null) currentPoints[idx].imgX = loaded.imgX;
+                if (loaded.imgY != null) currentPoints[idx].imgY = loaded.imgY;
+              }
+            });
+            recomputeTriangulation();
+          }
+          if (data.opacity != null) {
+            const pct = Math.round(data.opacity * 100);
+            document.getElementById('opacity-slider').value = pct;
+            document.getElementById('opacity-val').textContent = pct + '%';
+          }
+        } catch (err) { alert('Invalid JSON: ' + err.message); }
+      };
+      reader.readAsText(file);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  PARSE NAMES
+    // ══════════════════════════════════════════════════════════════════════
+    function parseNames(nameStr) {
+      if (!nameStr) return [];
+      return nameStr.split(';').map(n => n.trim()).filter(n => n.length > 0);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  SUMMARY STATS
+    // ══════════════════════════════════════════════════════════════════════
+    function renderStats() {
+      const years = [...new Set(CENSUS_DATA.map(r => r.year))];
+      const towns = [...new Set(CENSUS_DATA.map(r => r.town))];
+      const totalNamed = CENSUS_DATA.reduce((sum, r) => sum + (r.names ? parseNames(r.names).length : 0), 0);
+      const latestCount = CENSUS_DATA.find(r => r.year === 1771)?.count || 0;
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-card"><div class="number">${years.length}</div><div class="label">Census Years</div></div>
+        <div class="stat-card"><div class="number">${towns.length}</div><div class="label">Towns</div></div>
+        <div class="stat-card"><div class="number">${totalNamed}</div><div class="label">People Named</div></div>
+        <div class="stat-card"><div class="number">${latestCount.toLocaleString()}</div><div class="label">Enslaved (1771)</div></div>
+      `;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  YEAR FILTER BUTTONS
+    // ══════════════════════════════════════════════════════════════════════
+    function renderYearFilters() {
+      const years = [...new Set(CENSUS_DATA.map(r => r.year))].sort((a, b) => a - b);
+      const container = document.getElementById('year-filters');
+      // "All" button
+      const allBtn = document.createElement('button');
+      allBtn.className = 'year-btn active';
+      allBtn.textContent = 'All';
+      allBtn.addEventListener('click', () => { activeYear = null; applyFilter(); });
+      container.appendChild(allBtn);
+
+      years.forEach(y => {
+        const btn = document.createElement('button');
+        btn.className = 'year-btn';
+        btn.textContent = y;
+        btn.style.borderLeftColor = YEAR_COLORS[y] || '#888';
+        btn.style.borderLeftWidth = '3px';
+        btn.addEventListener('click', () => { activeYear = y; applyFilter(); });
+        container.appendChild(btn);
+      });
+    }
+
+    function applyFilter() {
+      // Update button states
+      document.querySelectorAll('.year-btn').forEach(btn => {
+        if (activeYear === null) {
+          btn.classList.toggle('active', btn.textContent === 'All');
+        } else {
+          btn.classList.toggle('active', btn.textContent === String(activeYear));
+        }
+      });
+      // Show/hide markers
+      censusMarkers.forEach(({ marker, record }) => {
+        const visible = activeYear === null || record.year === activeYear;
+        marker.map = visible ? map : null;
+      });
+      // Update record list
+      renderRecordList();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  TOWN LEGEND
+    // ══════════════════════════════════════════════════════════════════════
+    function renderTownLegend() {
+      const container = document.getElementById('town-legend');
+      Object.entries(TOWN_COORDS).forEach(([town, info]) => {
+        const records = CENSUS_DATA.filter(r => r.town === town);
+        const totalCount = records.reduce((s, r) => s + r.count, 0);
+        const item = document.createElement('div');
+        item.className = 'town-item';
+        item.innerHTML = `
+          <span class="town-dot" style="background:${info.color}"></span>
+          <span class="town-name">${town}</span>
+          <span class="town-count">${records.length} rec</span>
+        `;
+        item.addEventListener('click', () => {
+          map.panTo({ lat: info.lat, lng: info.lng });
+          map.setZoom(14);
+        });
+        container.appendChild(item);
+      });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  RECORD LIST (in left panel)
+    // ══════════════════════════════════════════════════════════════════════
+    function renderRecordList() {
+      const container = document.getElementById('record-list');
+      container.innerHTML = '';
+      const filtered = activeYear === null ? CENSUS_DATA : CENSUS_DATA.filter(r => r.year === activeYear);
+      filtered.forEach((record, idx) => {
+        const item = document.createElement('div');
+        item.className = 'record-item';
+        const nameCount = record.names ? parseNames(record.names).length : 0;
+        const hasNames = nameCount > 0;
+        item.innerHTML = `
+          <div class="record-year">${record.year}</div>
+          <div class="record-town">${record.town}</div>
+          <div class="record-count">${record.count.toLocaleString()} enslaved people${hasNames ? ' &bull; ' + nameCount + ' named' : ''}</div>
+        `;
+        const coords = TOWN_COORDS[record.town];
+        item.addEventListener('click', () => {
+          if (coords) {
+            map.panTo({ lat: coords.lat, lng: coords.lng });
+            map.setZoom(14);
+          }
+          showInfoCard(record);
+        });
+        container.appendChild(item);
+      });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  INFO CARD
+    // ══════════════════════════════════════════════════════════════════════
+    function showInfoCard(record) {
+      const card = document.getElementById('info-card');
+      const content = document.getElementById('card-content');
+      const names = parseNames(record.names);
+      const coords = TOWN_COORDS[record.town];
+
+      let html = `
+        <h2>${record.town}</h2>
+        <span class="year-badge">${record.year} Census</span>
+        <div class="count-line"><strong>${record.count.toLocaleString()}</strong> enslaved people recorded</div>
+      `;
+
+      if (names.length > 0) {
+        html += `
+          <div class="names-section">
+            <h4>${names.length} People Named in the Record</h4>
+            <div class="name-list">
+              ${names.map(n => `<span class="name-tag">${n}</span>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (record.town === 'Morrisania' && record.year === 1755) {
+        html += `<div class="note">Names include descriptors: "Samson Blind", "Old Peter", "Long Peter", "Peter Short" — suggesting these individuals were well-known enough to need distinguishing identifiers.</div>`;
+      } else if (record.town === 'Westchester County' && record.count > 1000) {
+        html += `<div class="note">County-wide aggregate count. Individual town breakdowns not available for this year.</div>`;
+      } else if (names.length > 0 && record.year === 1698) {
+        html += `<div class="note">These are among the earliest recorded names of enslaved Africans in the Bronx area, from the 1698 colonial census.</div>`;
+      }
+
+      content.innerHTML = html;
+
+      // Position card to the right of the panel
+      card.style.top = '60px';
+      card.style.left = '352px';
+      card.classList.add('visible');
+    }
+
+    function hideInfoCard() {
+      document.getElementById('info-card').classList.remove('visible');
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  CENSUS MARKERS
+    // ══════════════════════════════════════════════════════════════════════
+    function createCensusMarkers() {
+      censusMarkers.forEach(({ marker }) => marker.map = null);
+      censusMarkers = [];
+
+      CENSUS_DATA.forEach((record, idx) => {
+        const coords = TOWN_COORDS[record.town];
+        if (!coords) return;
+
+        const yearColor = YEAR_COLORS[record.year] || '#888';
+        const townColor = coords.color;
+        const hasNames = record.names && record.names.length > 0;
+
+        // Offset markers from the same town so they don't stack
+        const sameTown = CENSUS_DATA.slice(0, idx).filter(r => r.town === record.town);
+        const offset = sameTown.length;
+        const angle = (offset * 40 + 15) * (Math.PI / 180);
+        const dist = offset * 0.003;
+        const lat = coords.lat + Math.cos(angle) * dist;
+        const lng = coords.lng + Math.sin(angle) * dist;
+
+        // Size based on count (log scale)
+        const size = Math.max(32, Math.min(56, 20 + Math.log10(record.count + 1) * 12));
+
+        const el = document.createElement('div');
+        el.style.cssText = `
+          width: ${size}px; height: ${size}px; border-radius: 50%;
+          background: radial-gradient(circle at 35% 35%, ${yearColor}, ${adjustColor(yearColor, -40)});
+          border: 2.5px solid ${townColor};
+          display: flex; align-items: center; justify-content: center;
+          font-size: ${size < 40 ? 10 : 12}px; font-weight: 700; color: #fff;
+          font-family: 'Georgia', serif;
+          cursor: pointer; position: relative;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+          transition: transform 0.15s;
+        `;
+        el.textContent = record.count > 999 ? (record.count / 1000).toFixed(1) + 'k' : record.count;
+        el.title = `${record.year} — ${record.town}: ${record.count} enslaved`;
+
+        // Names indicator dot
+        if (hasNames) {
+          const dot = document.createElement('div');
+          dot.style.cssText = `
+            position: absolute; top: -2px; right: -2px;
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #ffc13b; border: 1.5px solid #120e0a;
+          `;
+          dot.title = 'Names recorded';
+          el.appendChild(dot);
+        }
+
+        // Year label below marker
+        const lbl = document.createElement('div');
+        lbl.style.cssText = `
+          position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+          white-space: nowrap; font-size: 9px; font-weight: 700;
+          color: #fff; background: rgba(0,0,0,0.7); padding: 1px 5px;
+          border-radius: 3px; pointer-events: none;
+          font-family: system-ui, sans-serif;
+        `;
+        lbl.textContent = record.year;
+        el.appendChild(lbl);
+
+        const marker = new google.maps.marker.AdvancedMarkerElement({
+          map, position: { lat, lng },
+          content: el, zIndex: 50 + idx,
+        });
+
+        marker.addListener('click', () => {
+          map.panTo({ lat, lng });
+          showInfoCard(record);
+        });
+
+        el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.15)'; });
+        el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
+
+        censusMarkers.push({ marker, record });
+      });
+    }
+
+    function adjustColor(hex, amount) {
+      const num = parseInt(hex.replace('#', ''), 16);
+      const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+      const g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + amount));
+      const b = Math.max(0, Math.min(255, (num & 0xff) + amount));
+      return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  INIT
+    // ══════════════════════════════════════════════════════════════════════
+    async function initMap() {
+      const { Map } = await google.maps.importLibrary('maps');
+      await google.maps.importLibrary('marker');
+
+      map = new Map(document.getElementById('map'), {
+        center: { lat: 40.8448, lng: -73.8648 },
+        zoom: 12,
+        mapId: 'a9461ba5f543306b87fc900f',
+        disableDefaultUI: false,
+        mapTypeControl: true,
+        gestureHandling: 'greedy',
+      });
+
+      // Build UI
+      renderStats();
+      renderYearFilters();
+      renderTownLegend();
+      renderRecordList();
+
+      // Load overlay image & create markers
+      await loadImage('BlacksInTheColonialBronx.png');
+      createCensusMarkers();
+
+      // Map redraw listeners
+      map.addListener('bounds_changed', renderOverlay);
+      map.addListener('zoom_changed', renderOverlay);
+      map.addListener('idle', renderOverlay);
+
+      // Close info card on map click
+      map.addListener('click', hideInfoCard);
+
+      // UI wiring
+      document.getElementById('opacity-slider').addEventListener('input', e => {
+        document.getElementById('opacity-val').textContent = e.target.value + '%';
+        renderOverlay();
+      });
+      document.getElementById('overlay-toggle').addEventListener('change', e => {
+        overlayVisible = e.target.checked;
+        renderOverlay();
+      });
+      document.getElementById('close-card').addEventListener('click', hideInfoCard);
+      document.getElementById('load-georef-btn').addEventListener('click', () =>
+        document.getElementById('georef-input').click());
+      document.getElementById('georef-input').addEventListener('change', e => {
+        if (e.target.files[0]) loadGeorefJSON(e.target.files[0]);
+      });
+    }
+  </script>
+
+  <script>
+    (async () => {
+      const s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDODtJJwm_y9aQieG3gE3_wAi4bjL7bfvg&v=weekly&libraries=marker';
+      document.head.appendChild(s);
+      await new Promise(r => s.onload = r);
+      initMap();
+    })();
+  </script>
+</body>
+</html>

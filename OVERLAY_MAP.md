@@ -1,10 +1,10 @@
-# Enslaved Africans in the Bronx — Georeferencing Tools
+# Enslaved Africans in the Bronx — Interactive Historical Map
 
 ## What This Is
 
-Two interactive georeferencing tools for Moya that align a scanned 1750 colonial
-Bronx map on top of a modern Google Map. Phase 2 will add enslaved African
-historical datapoints from census data (Excel file).
+An interactive map project for Moya combining a georeferenced 1750 colonial Bronx
+map overlay with census data showing enslaved African people in the region (1698–1771).
+Includes two georeferencing tools and a census data viewer.
 
 **Live:** https://emilezounon.com/enslaved-africans-bronx-moya/
 
@@ -76,10 +76,11 @@ that a single 4-corner warp cannot fix.
 
 ```
 enslaved-africans-bronx-moya/
+├── phase2.html                             ← CENSUS DATA VIEWER (Phase 2)
 ├── index.html                              ← simple 4-corner warp (first draft)
 ├── georef-precise.html                     ← multi-point mesh warp (precise)
 ├── BlacksInTheColonialBronx.png            ← 1750 colonial Bronx map
-├── LehmanCensusDataSlavePeopleForMoya.xlsx ← Phase 2 census data (not yet used)
+├── LehmanCensusDataSlavePeopleForMoya.xlsx ← original census data (Excel)
 ├── GEOREF_RESEARCH.md                      ← detailed research on map features
 └── OVERLAY_MAP.md                          ← this file
 ```
@@ -95,10 +96,47 @@ enslaved-africans-bronx-moya/
 
 ---
 
-## Phase 2 (Future)
+## Phase 2: Census Data Viewer (`phase2.html`)
 
-The `LehmanCensusDataSlavePeopleForMoya.xlsx` file contains enslaved African
-census data for the colonial Bronx. Phase 2 will:
-- Load the georef JSON to restore the 1750 map overlay automatically
-- Parse the Excel data and render historical datapoints as markers on the map
-- Allow filtering, searching, and exploring individual records
+Displays enslaved African census records (1698–1771) as interactive markers on
+the map, combined with the 1750 colonial Bronx overlay.
+
+### Data Source
+
+Parsed from `LehmanCensusDataSlavePeopleForMoya.xlsx` (Lehman College). **17 records**
+across 10 census years and 7 colonial towns. 202 people named individually; the
+1771 county-wide count reaches 3,430.
+
+### Colonial Town → Modern Location Mapping
+
+| Colonial Town | Modern Area | Approx. Lat/Lng |
+|---|---|---|
+| Town of Westchester | Westchester Square | 40.839, -73.843 |
+| Fordham | Fordham / Bronx Zoo area | 40.861, -73.889 |
+| Morrisania | Morrisania neighborhood | 40.828, -73.905 |
+| East Chester | Eastchester / Mt Vernon | 40.890, -73.825 |
+| Yunkers (Yonkers) | Yonkers / Riverdale border | 40.900, -73.900 |
+| Pelham | Pelham Bay area | 40.858, -73.805 |
+| Westchester County | Center of Bronx (aggregate) | 40.845, -73.865 |
+
+### Features
+
+- **1750 map overlay** with mesh warp (same rendering as `georef-precise.html`)
+- **Load saved georef JSON** to restore Moya's pin alignment
+- **Opacity slider** and show/hide toggle for the overlay
+- **Census markers**: circle markers with enslaved count, color-coded by era
+  - Gold dot = names are recorded in this census entry
+- **Click a marker** → info card shows year, town, count, and individual names
+- **Year filter buttons** → show only markers from a specific census year
+- **Left panel**: summary stats, town legend with click-to-zoom, scrollable record list
+- **Contextual notes** on info cards (e.g. earliest recorded names, distinguishing
+  descriptors like "Samson Blind" or "Long Peter")
+
+### How to Use
+
+1. Open `phase2.html` in a browser (or visit the live URL)
+2. The 1750 overlay appears at 50% opacity with census markers on top
+3. Click year buttons to filter by census year
+4. Click any marker or record in the left panel to see details
+5. To use Moya's custom alignment, click "Load saved georef JSON"
+6. Adjust overlay opacity or hide it entirely with the controls
